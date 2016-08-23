@@ -1,10 +1,12 @@
 package bee
 
 import (
-	// "encoding/json"
+	"bytes"
+	"encoding/xml"
 	"fmt"
 	"github.com/dghubble/sling"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"strings"
 )
@@ -60,17 +62,36 @@ func (self *MultiClientRequest) Perform(success interface{}, failure interface{}
 			request.BodyJSON(self.RequestBody)
 
 			// data, _ := json.MarshalIndent(self.RequestBody, ``, `  `)
-			// log.Debugf("[MC]: %s %s%s body:%s", self.Method, self.BaseUrl, self.Path, string(data[:]))
+			// fmt.Printf("[MC]: %s %s%s body:%s\n", self.Method, self.BaseUrl, self.Path, string(data[:]))
 
 		case BodyForm:
 			request.BodyForm(self.RequestBody)
-		case BodyRaw:
+		case BodyRaw, BodyXml:
+			var reader io.Reader
+
 			switch self.RequestBody.(type) {
 			case io.Reader:
-				reader := self.RequestBody.(io.Reader)
-				request.Body(reader)
+				reader = self.RequestBody.(io.Reader)
+			case string:
+				reader = bytes.NewBufferString(self.RequestBody.(string))
+			case []byte:
+				reader = bytes.NewBuffer(self.RequestBody.([]byte))
+			}
+
+			switch self.BodyType {
+			case BodyXml:
+				if input, err := ioutil.ReadAll(reader); err == nil {
+					if data, err := xml.Marshal(input); err == nil {
+						request.Body(bytes.NewBuffer(data))
+					} else {
+						return nil, err
+					}
+				} else {
+					return nil, err
+				}
+
 			default:
-				return nil, fmt.Errorf("Must pass an io.Reader for raw request body")
+				request.Body(reader)
 			}
 		}
 	}

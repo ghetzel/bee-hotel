@@ -2,8 +2,10 @@ package bee
 
 import (
 	"fmt"
+	"io"
 	"math/rand"
 	"net"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -15,13 +17,18 @@ type RequestBodyType int
 
 const (
 	BodyRaw RequestBodyType = iota
+	BodyXml
 	BodyJson
 	BodyForm
 )
 
 type MultiClient struct {
 	Addresses          []string
+	HealthChecks       bool
 	HealthCheckPath    string
+	HealthCheckMethod  string
+	HealthCheckBody    io.Reader
+	HealthCheckMatch   string
 	HealthCheckTimeout time.Duration
 	RetryLimit         int
 	DefaultBodyType    RequestBodyType
@@ -33,6 +40,7 @@ type MultiClient struct {
 func NewMultiClient(addresses ...string) *MultiClient {
 	return &MultiClient{
 		Addresses:          addresses,
+		HealthCheckMethod:  `GET`,
 		HealthCheckTimeout: DEFAULT_MULTICLIENT_HEALTHCHECK_TIMEOUT,
 		RetryLimit:         1,
 		DefaultBodyType:    BodyJson,
@@ -87,6 +95,16 @@ func (self *MultiClient) IsHealthy(address string) bool {
 		if conn, err := net.DialTimeout(`tcp`, socketAddress, self.HealthCheckTimeout); err == nil {
 			defer conn.Close()
 			return true
+		}
+	} else {
+		if request, err := NewClientRequest(self.HealthCheckMethod, self.HealthCheckPath, self.HealthCheckBody, BodyRaw); err == nil {
+			var response string
+
+			if _, err := request.Perform(&response, nil); err == nil {
+				if ok, err := regexp.MatchString(self.HealthCheckMatch, response); err == nil && ok {
+					return true
+				}
+			}
 		}
 	}
 
