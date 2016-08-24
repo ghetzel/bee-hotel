@@ -126,6 +126,7 @@ func (self *MultiClient) GetHealthyAddresses() []string {
 }
 
 func (self *MultiClient) GetRandomHealthyAddress() (string, error) {
+	// if we have health checks enabled, only select from known healthy addresses
 	if self.HealthChecks {
 		if len(self.healthyAddresses) == 0 {
 			return ``, fmt.Errorf("No healthy addresses found")
@@ -139,6 +140,7 @@ func (self *MultiClient) GetRandomHealthyAddress() (string, error) {
 			return ``, fmt.Errorf("No healthy addresses found")
 		}
 	} else {
+	// otherwise, just pick a random address
 		if len(self.Addresses) == 0 {
 			return ``, fmt.Errorf("No addresses found")
 		}
