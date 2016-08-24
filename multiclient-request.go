@@ -118,7 +118,7 @@ func (self *MultiClientRequest) Perform(success interface{}, failure interface{}
 }
 
 func (self *MultiClientRequest) DefaultResponseProcessor(response *http.Response, into interface{}) error {
-	switch response.Header.Get(`Content-Type`) {
+	switch strings.Split(response.Header.Get(`Content-Type`), `;`)[0] {
 	case `application/json`, `text/json`:
 		return self.DecodeJsonResponse(response, into)
 	case `text/xml`:

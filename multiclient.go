@@ -5,6 +5,7 @@ import (
 	"io"
 	"math/rand"
 	"net"
+	"net/http"
 	"regexp"
 	"strings"
 	"sync"
@@ -196,7 +197,7 @@ func (self *MultiClient) CheckAll() error {
 	return self.checkConnect(len(self.Addresses))
 }
 
-func (self *MultiClient) Request(method string, path string, payload interface{}, output interface{}, failure interface{}) error {
+func (self *MultiClient) Request(method string, path string, payload interface{}, output interface{}, failure interface{}) (*http.Response, error) {
 	var lastErr error
 
 	if request, err := NewClientRequest(method, path, payload, self.DefaultBodyType); err == nil {
@@ -205,22 +206,22 @@ func (self *MultiClient) Request(method string, path string, payload interface{}
 			if address, err := self.GetRandomHealthyAddress(); err == nil {
 				request.SetBaseUrl(address)
 
-				if _, err := request.Perform(output, failure); err == nil {
-					return nil
+				if response, err := request.Perform(output, failure); err == nil {
+					return response, nil
 				} else {
 					lastErr = err
 				}
 			} else {
-				return err
+				return nil, err
 			}
 		}
 
 		if lastErr != nil {
-			return lastErr
+			return nil, lastErr
 		} else {
-			return fmt.Errorf("Exceeded retry limit for request")
+			return nil, fmt.Errorf("Exceeded retry limit for request")
 		}
 	} else {
-		return err
+		return nil, err
 	}
 }
