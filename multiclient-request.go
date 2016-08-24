@@ -2,6 +2,7 @@ package bee
 
 import (
 	"bytes"
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"github.com/dghubble/sling"
@@ -11,12 +12,15 @@ import (
 	"strings"
 )
 
+type ResponseDecoder func(*http.Response, interface{}) error // {}
+
 type MultiClientRequest struct {
-	BaseUrl     string
-	BodyType    RequestBodyType
-	Method      string
-	Path        string
-	RequestBody interface{}
+	BaseUrl           string
+	BodyType          RequestBodyType
+	Method            string
+	Path              string
+	RequestBody       interface{}
+	ResponseProcessor ResponseDecoder
 }
 
 func NewClientRequest(method string, path string, payload interface{}, payloadType RequestBodyType) (*MultiClientRequest, error) {
@@ -26,6 +30,8 @@ func NewClientRequest(method string, path string, payload interface{}, payloadTy
 		Path:        path,
 		RequestBody: payload,
 	}
+
+	mcRequest.ResponseProcessor = mcRequest.DefaultResponseProcessor
 
 	return mcRequest, nil
 }
@@ -96,5 +102,40 @@ func (self *MultiClientRequest) Perform(success interface{}, failure interface{}
 		}
 	}
 
-	return request.Receive(success, failure)
+	if httpReq, err := request.Request(); err == nil {
+		if response, err := http.DefaultClient.Do(httpReq); err == nil {
+			if response.StatusCode < 400 {
+				return response, self.ResponseProcessor(response, success)
+			} else {
+				return response, self.ResponseProcessor(response, failure)
+			}
+		} else {
+			return nil, err
+		}
+	} else {
+		return nil, err
+	}
+}
+
+func (self *MultiClientRequest) DefaultResponseProcessor(response *http.Response, into interface{}) error {
+	switch response.Header.Get(`Content-Type`) {
+	case `application/json`, `text/json`:
+		return self.DecodeJsonResponse(response, into)
+	case `text/xml`:
+		return self.DecodeXmlResponse(response, into)
+	default:
+		return self.DecodeTextResponse(response, into)
+	}
+}
+
+func (self *MultiClientRequest) DecodeJsonResponse(response *http.Response, into interface{}) error {
+	return json.NewDecoder(response.Body).Decode(into)
+}
+
+func (self *MultiClientRequest) DecodeXmlResponse(response *http.Response, into interface{}) error {
+	return xml.NewDecoder(response.Body).Decode(into)
+}
+
+func (self *MultiClientRequest) DecodeTextResponse(response *http.Response, into interface{}) error {
+	return fmt.Errorf("NOT IMPLEMENTED")
 }
