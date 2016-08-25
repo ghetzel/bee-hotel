@@ -6,13 +6,14 @@ import (
 	"encoding/xml"
 	"fmt"
 	"github.com/dghubble/sling"
+	"github.com/ghetzel/go-stockutil/stringutil"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
 )
 
-type PreRequestHook func(*sling.Sling) error                 // {}
+type PreRequestHook func(*MultiClientRequest) error          // {}
 type ResponseDecoder func(*http.Response, interface{}) error // {}
 
 type MultiClientRequest struct {
@@ -22,6 +23,8 @@ type MultiClientRequest struct {
 	Path              string
 	RequestBody       interface{}
 	ResponseProcessor ResponseDecoder
+	Headers           map[string]interface{}
+	QueryString       map[string]interface{}
 }
 
 func NewClientRequest(method string, path string, payload interface{}, payloadType RequestBodyType) (*MultiClientRequest, error) {
@@ -30,6 +33,8 @@ func NewClientRequest(method string, path string, payload interface{}, payloadTy
 		Method:      method,
 		Path:        path,
 		RequestBody: payload,
+		QueryString: make(map[string]interface{}),
+		Headers:     make(map[string]interface{}),
 	}
 
 	mcRequest.ResponseProcessor = mcRequest.DefaultResponseProcessor
@@ -105,12 +110,39 @@ func (self *MultiClientRequest) Perform(success interface{}, failure interface{}
 
 	// apply any pre-request hooks
 	for _, hook := range preRequestHooks {
-		if err := hook(request); err != nil {
+		if err := hook(self); err != nil {
 			return nil, err
 		}
 	}
 
 	if httpReq, err := request.Request(); err == nil {
+		// apply querystring values
+		if len(self.QueryString) > 0 {
+			query := httpReq.URL.Query()
+
+			for key, value := range self.QueryString {
+				if v, err := stringutil.ToString(value); err == nil {
+					query.Set(key, v)
+				} else {
+					return nil, err
+				}
+			}
+
+			httpReq.URL.RawQuery = query.Encode()
+		}
+
+		// apply header values
+		if len(self.Headers) > 0 {
+			for key, value := range self.Headers {
+				if v, err := stringutil.ToString(value); err == nil {
+					request.Set(key, v)
+				} else {
+					return nil, err
+				}
+			}
+		}
+
+		// perform request
 		if response, err := http.DefaultClient.Do(httpReq); err == nil {
 			if response.StatusCode < 400 {
 				return response, self.ResponseProcessor(response, success)
@@ -146,4 +178,12 @@ func (self *MultiClientRequest) DecodeXmlResponse(response *http.Response, into 
 
 func (self *MultiClientRequest) DecodeTextResponse(response *http.Response, into interface{}) error {
 	return fmt.Errorf("NOT IMPLEMENTED")
+}
+
+func (self *MultiClientRequest) QuerySet(key string, value string) {
+	self.QueryString[key] = value
+}
+
+func (self *MultiClientRequest) HeaderSet(key string, value string) {
+	self.Headers[key] = value
 }
