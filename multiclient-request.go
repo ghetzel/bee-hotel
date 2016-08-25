@@ -12,6 +12,7 @@ import (
 	"strings"
 )
 
+type PreRequestHook func(*sling.Sling) error                 // {}
 type ResponseDecoder func(*http.Response, interface{}) error // {}
 
 type MultiClientRequest struct {
@@ -40,7 +41,7 @@ func (self *MultiClientRequest) SetBaseUrl(base string) {
 	self.BaseUrl = strings.TrimSuffix(base, `/`) + `/`
 }
 
-func (self *MultiClientRequest) Perform(success interface{}, failure interface{}) (*http.Response, error) {
+func (self *MultiClientRequest) Perform(success interface{}, failure interface{}, preRequestHooks ...PreRequestHook) (*http.Response, error) {
 	request := sling.New()
 
 	request.Base(self.BaseUrl)
@@ -99,6 +100,13 @@ func (self *MultiClientRequest) Perform(success interface{}, failure interface{}
 			default:
 				request.Body(reader)
 			}
+		}
+	}
+
+	// apply any pre-request hooks
+	for _, hook := range preRequestHooks {
+		if err := hook(request); err != nil {
+			return nil, err
 		}
 	}
 

@@ -140,7 +140,7 @@ func (self *MultiClient) GetRandomHealthyAddress() (string, error) {
 			return ``, fmt.Errorf("No healthy addresses found")
 		}
 	} else {
-	// otherwise, just pick a random address
+		// otherwise, just pick a random address
 		if len(self.Addresses) == 0 {
 			return ``, fmt.Errorf("No addresses found")
 		}
@@ -199,7 +199,7 @@ func (self *MultiClient) CheckAll() error {
 	return self.checkConnect(len(self.Addresses))
 }
 
-func (self *MultiClient) Request(method string, path string, payload interface{}, output interface{}, failure interface{}) (*http.Response, error) {
+func (self *MultiClient) Request(method string, path string, payload interface{}, output interface{}, failure interface{}, preRequestHooks ...PreRequestHook) (*http.Response, error) {
 	var lastErr error
 
 	if request, err := NewClientRequest(method, path, payload, self.DefaultBodyType); err == nil {
@@ -208,7 +208,7 @@ func (self *MultiClient) Request(method string, path string, payload interface{}
 			if address, err := self.GetRandomHealthyAddress(); err == nil {
 				request.SetBaseUrl(address)
 
-				if response, err := request.Perform(output, failure); err == nil {
+				if response, err := request.Perform(output, failure, preRequestHooks...); err == nil {
 					return response, nil
 				} else {
 					lastErr = err
