@@ -180,10 +180,10 @@ func (self *MultiClientRequest) DecodeTextResponse(response *http.Response, into
 	return fmt.Errorf("NOT IMPLEMENTED")
 }
 
-func (self *MultiClientRequest) QuerySet(key string, value string) {
+func (self *MultiClientRequest) QuerySet(key string, value interface{}) {
 	self.QueryString[key] = value
 }
 
-func (self *MultiClientRequest) HeaderSet(key string, value string) {
+func (self *MultiClientRequest) HeaderSet(key string, value interface{}) {
 	self.Headers[key] = value
 }
