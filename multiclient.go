@@ -33,6 +33,7 @@ type MultiClient struct {
 	HealthCheckTimeout time.Duration
 	RetryLimit         int
 	DefaultBodyType    RequestBodyType
+	PreRequestHooks    []PreRequestHook
 	healthyAddresses   []int
 	checkLock          sync.Mutex
 	active             bool
@@ -45,6 +46,7 @@ func NewMultiClient(addresses ...string) *MultiClient {
 		HealthCheckTimeout: DEFAULT_MULTICLIENT_HEALTHCHECK_TIMEOUT,
 		RetryLimit:         1,
 		DefaultBodyType:    BodyJson,
+		PreRequestHooks:    make([]PreRequestHook, 0),
 		active:             true,
 	}
 }
@@ -207,6 +209,8 @@ func (self *MultiClient) Request(method string, path string, payload interface{}
 			// get a random healthy address or fail out
 			if address, err := self.GetRandomHealthyAddress(); err == nil {
 				request.SetBaseUrl(address)
+
+				preRequestHooks = append(self.PreRequestHooks, preRequestHooks...)
 
 				if response, err := request.Perform(output, failure, preRequestHooks...); err == nil {
 					return response, nil
