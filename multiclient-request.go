@@ -43,13 +43,13 @@ func NewClientRequest(method string, path string, payload interface{}, payloadTy
 }
 
 func (self *MultiClientRequest) SetBaseUrl(base string) {
-	self.BaseUrl = strings.TrimSuffix(base, `/`) + `/`
+	self.BaseUrl = strings.TrimSuffix(base, `/`)
 }
 
 func (self *MultiClientRequest) Perform(success interface{}, failure interface{}, preRequestHooks ...PreRequestHook) (*http.Response, error) {
 	request := sling.New()
 
-	request.Base(self.BaseUrl)
+	request.Base(self.BaseUrl+`/`)
 
 	switch self.Method {
 	case `GET`:
