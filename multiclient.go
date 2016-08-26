@@ -251,3 +251,11 @@ func (self *MultiClient) Request(method string, path string, payload interface{}
 		return nil, err
 	}
 }
+
+func (self *MultiClient) QuerySet(key string, value interface{}) {
+	self.RequestQueryStrings[key] = value
+}
+
+func (self *MultiClient) HeaderSet(key string, value interface{}) {
+	self.RequestHeaders[key] = value
+}
