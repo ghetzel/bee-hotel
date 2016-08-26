@@ -30,7 +30,7 @@ type MultiClientRequest struct {
 func NewClientRequest(method string, path string, payload interface{}, payloadType RequestBodyType) (*MultiClientRequest, error) {
 	mcRequest := &MultiClientRequest{
 		BodyType:    payloadType,
-		Method:      method,
+		Method:      strings.ToUpper(method),
 		Path:        path,
 		RequestBody: payload,
 		QueryString: make(map[string]interface{}),
