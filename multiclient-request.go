@@ -14,27 +14,32 @@ import (
 )
 
 type PreRequestHook func(*MultiClientRequest) error          // {}
+type ImmediatePreRequestHook func(*http.Request) error       // {}
 type ResponseDecoder func(*http.Response, interface{}) error // {}
 
 type MultiClientRequest struct {
-	BaseUrl           string
-	BodyType          RequestBodyType
-	Method            string
-	Path              string
-	RequestBody       interface{}
-	ResponseProcessor ResponseDecoder
-	Headers           map[string]interface{}
-	QueryString       map[string]interface{}
+	BaseUrl                  string
+	BodyType                 RequestBodyType
+	Method                   string
+	Path                     string
+	RequestBody              interface{}
+	ResponseProcessor        ResponseDecoder
+	Headers                  map[string]interface{}
+	QueryString              map[string]interface{}
+	PreRequestHooks          []PreRequestHook
+	ImmediatePreRequestHooks []ImmediatePreRequestHook
 }
 
 func NewClientRequest(method string, path string, payload interface{}, payloadType RequestBodyType) (*MultiClientRequest, error) {
 	mcRequest := &MultiClientRequest{
-		BodyType:    payloadType,
-		Method:      strings.ToUpper(method),
-		Path:        path,
-		RequestBody: payload,
-		QueryString: make(map[string]interface{}),
-		Headers:     make(map[string]interface{}),
+		BodyType:                 payloadType,
+		Method:                   strings.ToUpper(method),
+		Path:                     path,
+		RequestBody:              payload,
+		QueryString:              make(map[string]interface{}),
+		Headers:                  make(map[string]interface{}),
+		PreRequestHooks:          make([]PreRequestHook, 0),
+		ImmediatePreRequestHooks: make([]ImmediatePreRequestHook, 0),
 	}
 
 	mcRequest.ResponseProcessor = mcRequest.DefaultResponseProcessor
@@ -46,10 +51,10 @@ func (self *MultiClientRequest) SetBaseUrl(base string) {
 	self.BaseUrl = strings.TrimSuffix(base, `/`)
 }
 
-func (self *MultiClientRequest) Perform(success interface{}, failure interface{}, preRequestHooks ...PreRequestHook) (*http.Response, error) {
+func (self *MultiClientRequest) Perform(success interface{}, failure interface{}) (*http.Response, error) {
 	request := sling.New()
 
-	request.Base(self.BaseUrl+`/`)
+	request.Base(self.BaseUrl + `/`)
 
 	switch self.Method {
 	case `GET`:
@@ -109,7 +114,7 @@ func (self *MultiClientRequest) Perform(success interface{}, failure interface{}
 	}
 
 	// apply any pre-request hooks
-	for _, hook := range preRequestHooks {
+	for _, hook := range self.PreRequestHooks {
 		if err := hook(self); err != nil {
 			return nil, err
 		}
@@ -139,6 +144,13 @@ func (self *MultiClientRequest) Perform(success interface{}, failure interface{}
 				} else {
 					return nil, err
 				}
+			}
+		}
+
+		// apply any immediate pre-request hooks
+		for _, hook := range self.ImmediatePreRequestHooks {
+			if err := hook(httpReq); err != nil {
+				return nil, err
 			}
 		}
 

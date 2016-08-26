@@ -24,32 +24,34 @@ const (
 )
 
 type MultiClient struct {
-	Addresses          []string
-	HealthChecks       bool
-	HealthCheckPath    string
-	HealthCheckMethod  string
-	HealthCheckBody    io.Reader
-	HealthCheckMatch   string
-	HealthCheckTimeout time.Duration
-	RetryLimit         int
-	DefaultBodyType    RequestBodyType
-	PreRequestHooks    []PreRequestHook
-	LatePreRequestHooks    []PreRequestHook
-	healthyAddresses   []int
-	checkLock          sync.Mutex
-	active             bool
+	Addresses                []string
+	HealthChecks             bool
+	HealthCheckPath          string
+	HealthCheckMethod        string
+	HealthCheckBody          io.Reader
+	HealthCheckMatch         string
+	HealthCheckTimeout       time.Duration
+	RetryLimit               int
+	DefaultBodyType          RequestBodyType
+	PreRequestHooks          []PreRequestHook
+	LatePreRequestHooks      []PreRequestHook
+	ImmediatePreRequestHooks []ImmediatePreRequestHook
+	healthyAddresses         []int
+	checkLock                sync.Mutex
+	active                   bool
 }
 
 func NewMultiClient(addresses ...string) *MultiClient {
 	return &MultiClient{
-		Addresses:          addresses,
-		HealthCheckMethod:  `GET`,
-		HealthCheckTimeout: DEFAULT_MULTICLIENT_HEALTHCHECK_TIMEOUT,
-		RetryLimit:         1,
-		DefaultBodyType:    BodyJson,
-		PreRequestHooks:    make([]PreRequestHook, 0),
-		LatePreRequestHooks:    make([]PreRequestHook, 0),
-		active:             true,
+		Addresses:                addresses,
+		HealthCheckMethod:        `GET`,
+		HealthCheckTimeout:       DEFAULT_MULTICLIENT_HEALTHCHECK_TIMEOUT,
+		RetryLimit:               1,
+		DefaultBodyType:          BodyJson,
+		PreRequestHooks:          make([]PreRequestHook, 0),
+		LatePreRequestHooks:      make([]PreRequestHook, 0),
+		ImmediatePreRequestHooks: make([]ImmediatePreRequestHook, 0),
+		active: true,
 	}
 }
 
@@ -215,7 +217,10 @@ func (self *MultiClient) Request(method string, path string, payload interface{}
 				preRequestHooks = append(self.PreRequestHooks, preRequestHooks...)
 				preRequestHooks = append(preRequestHooks, self.LatePreRequestHooks...)
 
-				if response, err := request.Perform(output, failure, preRequestHooks...); err == nil {
+				request.PreRequestHooks = preRequestHooks
+				request.ImmediatePreRequestHooks = self.ImmediatePreRequestHooks
+
+				if response, err := request.Perform(output, failure); err == nil {
 					return response, nil
 				} else {
 					lastErr = err
