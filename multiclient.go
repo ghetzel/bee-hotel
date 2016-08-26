@@ -213,6 +213,7 @@ func (self *MultiClient) Request(method string, path string, payload interface{}
 				request.SetBaseUrl(address)
 
 				preRequestHooks = append(self.PreRequestHooks, preRequestHooks...)
+				preRequestHooks = append(preRequestHooks, self.LatePreRequestHooks...)
 
 				if response, err := request.Perform(output, failure, preRequestHooks...); err == nil {
 					return response, nil
