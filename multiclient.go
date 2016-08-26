@@ -34,6 +34,7 @@ type MultiClient struct {
 	RetryLimit         int
 	DefaultBodyType    RequestBodyType
 	PreRequestHooks    []PreRequestHook
+	LatePreRequestHooks    []PreRequestHook
 	healthyAddresses   []int
 	checkLock          sync.Mutex
 	active             bool
@@ -47,6 +48,7 @@ func NewMultiClient(addresses ...string) *MultiClient {
 		RetryLimit:         1,
 		DefaultBodyType:    BodyJson,
 		PreRequestHooks:    make([]PreRequestHook, 0),
+		LatePreRequestHooks:    make([]PreRequestHook, 0),
 		active:             true,
 	}
 }
