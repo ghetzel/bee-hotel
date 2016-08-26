@@ -137,13 +137,11 @@ func (self *MultiClientRequest) Perform(success interface{}, failure interface{}
 		}
 
 		// apply header values
-		if len(self.Headers) > 0 {
-			for key, value := range self.Headers {
-				if v, err := stringutil.ToString(value); err == nil {
-					request.Set(key, v)
-				} else {
-					return nil, err
-				}
+		for key, value := range self.Headers {
+			if v, err := stringutil.ToString(value); err == nil {
+				httpReq.Header.Set(key, v)
+			} else {
+				return nil, err
 			}
 		}
 
