@@ -62,6 +62,8 @@ func (self *MultiClientRequest) Perform(success interface{}, failure interface{}
 
 	request.Base(self.BaseUrl + `/`)
 
+	log.Debugf("> %v %v/%v", self.Method, self.BaseUrl, self.Path)
+
 	switch self.Method {
 	case `GET`:
 		request.Get(self.Path)
@@ -160,6 +162,12 @@ func (self *MultiClientRequest) Perform(success interface{}, failure interface{}
 
 		// perform request
 		if response, err := http.DefaultClient.Do(httpReq); err == nil {
+			log.Debugf("< %v", response.Status)
+
+			for k, v := range response.Header {
+				log.Debugf("<     %v: %v", k, v)
+			}
+
 			if response.StatusCode < 400 {
 				return response, self.ResponseProcessor(response, success)
 			} else {

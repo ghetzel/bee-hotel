@@ -10,7 +10,11 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/op/go-logging"
 )
+
+var log = logging.MustGetLogger(`bee`)
 
 const DEFAULT_MULTICLIENT_HEALTHCHECK_TIMEOUT = (time.Duration(10) * time.Second)
 
