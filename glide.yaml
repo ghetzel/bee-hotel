@@ -1,3 +1,0 @@
-package: github.com/ghetzel/bee-hotel
-import:
-- package: github.com/dghubble/sling

@@ -41,6 +41,7 @@ type MultiClient struct {
 	healthyAddresses         []int
 	checkLock                sync.Mutex
 	active                   bool
+	client                   *http.Client
 }
 
 func NewMultiClient(addresses ...string) *MultiClient {
@@ -77,6 +78,10 @@ func (self *MultiClient) SetRetryLimit(n int) {
 
 func (self *MultiClient) SetDefaultBodyType(t RequestBodyType) {
 	self.DefaultBodyType = t
+}
+
+func (self *MultiClient) SetClient(client *http.Client) {
+	self.client = client
 }
 
 func (self *MultiClient) Resume() {
@@ -213,6 +218,8 @@ func (self *MultiClient) Request(method string, path string, payload interface{}
 	var lastErr error
 
 	if request, err := NewClientRequest(method, path, payload, self.DefaultBodyType); err == nil {
+		request.Client = self.client
+
 		for i := 0; i < self.RetryLimit; i++ {
 			// get a random healthy address or fail out
 			if address, err := self.GetRandomHealthyAddress(); err == nil {

@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
-	"github.com/dghubble/sling"
-	"github.com/ghetzel/go-stockutil/stringutil"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
+
+	"github.com/dghubble/sling"
+	"github.com/ghetzel/go-stockutil/stringutil"
 )
 
 type PreRequestHook func(*MultiClientRequest) error          // {}
@@ -28,6 +29,7 @@ type MultiClientRequest struct {
 	QueryString              map[string]interface{}
 	PreRequestHooks          []PreRequestHook
 	ImmediatePreRequestHooks []ImmediatePreRequestHook
+	Client                   *http.Client
 }
 
 func NewClientRequest(method string, path string, payload interface{}, payloadType RequestBodyType) (*MultiClientRequest, error) {
@@ -53,6 +55,10 @@ func (self *MultiClientRequest) SetBaseUrl(base string) {
 
 func (self *MultiClientRequest) Perform(success interface{}, failure interface{}) (*http.Response, error) {
 	request := sling.New()
+
+	if self.Client != nil {
+		request.Client(self.Client)
+	}
 
 	request.Base(self.BaseUrl + `/`)
 
