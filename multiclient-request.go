@@ -193,7 +193,7 @@ func (self *MultiClientRequest) DecodeXmlResponse(response *http.Response, into 
 }
 
 func (self *MultiClientRequest) DecodeTextResponse(response *http.Response, into interface{}) error {
-	return self.DecodeXmlResponse(response, into)
+	return xml.NewDecoder(response.Body).Decode(into)
 }
 
 func (self *MultiClientRequest) QuerySet(key string, value interface{}) {
