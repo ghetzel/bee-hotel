@@ -10,11 +10,9 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/op/go-logging"
 )
 
-var log = logging.MustGetLogger(`bee`)
+const Version = `0.0.5`
 
 const DEFAULT_MULTICLIENT_HEALTHCHECK_TIMEOUT = (time.Duration(10) * time.Second)
 
@@ -60,7 +58,7 @@ func NewMultiClient(addresses ...string) *MultiClient {
 		PreRequestHooks:          make([]PreRequestHook, 0),
 		LatePreRequestHooks:      make([]PreRequestHook, 0),
 		ImmediatePreRequestHooks: make([]ImmediatePreRequestHook, 0),
-		active: true,
+		active:                   true,
 	}
 }
 

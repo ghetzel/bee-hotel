@@ -1,5 +1,8 @@
 .PHONY: test ui
 
+.EXPORT_ALL_VARIABLES:
+GO111MODULE = on
+
 all: fmt deps test
 
 deps:
